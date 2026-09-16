@@ -1,0 +1,33 @@
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Logs & temp
+*.log
+.coverage
+htmlcov/
+
+# Local cache (keep folder with gitkeep)
+data/cache/*
+!data/cache/.gitkeep
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store

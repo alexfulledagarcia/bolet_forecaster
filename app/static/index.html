@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bolet Forecaster Catalunya | Mapa de Probabilitat de Bolets</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="/static/vendor/leaflet.css" />
+  <!-- Custom Application Styling -->
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🍄</div>
+      <div>
+        <h1>Bolet Forecaster Catalunya</h1>
+        <p>Previsió ecològica basada en meteorologia oberta, relleu, ombra (obagues) i masses forestals</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btnRefreshWeather" class="btn btn-primary" title="Descarrega les dades meteorològiques més recents d'Open-Meteo">
+        <span>🔄</span>
+        <span>Actualitza Dades (Open-Meteo)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Work Area -->
+  <div class="app-container">
+
+    <!-- Left Sidebar: Species selection & Hotspot list -->
+    <aside class="sidebar">
+      <div class="sidebar-content">
+
+        <!-- Species Selection Grid -->
+        <section>
+          <div class="section-title">
+            <span>Tria l'espècie de bolet</span>
+            <span style="font-size: 0.7rem; color: var(--primary);">9 espècies</span>
+          </div>
+          <div id="speciesGrid" class="species-grid">
+            <!-- Populated dynamically via app.js -->
+          </div>
+        </section>
+
+        <!-- Filters: Comarca & Search -->
+        <section>
+          <div class="section-title">Filtra per Comarca o Zona</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <select id="comarcaSelect" class="comarca-select">
+              <option value="">Carregant comarques...</option>
+            </select>
+            <div class="search-box">
+              <span>🔍</span>
+              <input type="text" id="searchInput" placeholder="Cerca massís, bosc o poble..." />
+            </div>
+          </div>
+        </section>
+
+        <!-- Ranked Hotspots for Chosen Species -->
+        <section style="flex: 1; display: flex; flex-direction: column;">
+          <div class="section-title">
+            <span>Zones destacades (Hotspots)</span>
+            <span style="font-size: 0.7rem; color: var(--accent);">Millors probabilitats</span>
+          </div>
+          <div id="hotspotList" class="hotspot-list">
+            <!-- Populated dynamically -->
+          </div>
+        </section>
+
+      </div>
+    </aside>
+
+    <!-- Center/Right Map Viewport -->
+    <main class="map-container">
+      <div id="map"></div>
+
+      <!-- Map Controls Panel (Top Left) -->
+      <div class="map-controls-panel">
+        <div class="basemap-selector" id="basemapSelector">
+          <button type="button" class="basemap-btn active" data-layer="dark" title="Mapa fosc">
+            🌙 Fosc
+          </button>
+          <button type="button" class="basemap-btn" data-layer="osm" title="Mapa topogràfic / relleu">
+            🗺️ Topo
+          </button>
+          <button type="button" class="basemap-btn" data-layer="satellite" title="Imatge per satèl·lit">
+            🛰️ Satèl·lit
+          </button>
+        </div>
+
+        <div class="map-controls-divider"></div>
+
+        <div class="map-layer-toggles">
+          <label class="control-toggle" title="Activa o desactiva la capa de calor de probabilitat">
+            <input type="checkbox" id="chkHeatmap" checked />
+            <span>Capa de calor</span>
+          </label>
+          <label class="control-toggle" title="Mostra o amaga els marcadors de mostreig">
+            <input type="checkbox" id="chkMarkers" checked />
+            <span>Punts de mostreig</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Map Legend -->
+      <div class="map-legend">
+        <strong style="color: #f8fafc;">Probabilitat de trobada</strong>
+        <div class="legend-bar"></div>
+        <div class="legend-labels">
+          <span>&le;50% (Mínima)</span>
+          <span>75% (Favorable)</span>
+          <span>&gt;85% (Òptima)</span>
+        </div>
+      </div>
+
+      <!-- Floating Reopen Tab on right edge when drawer is closed -->
+      <button id="btnOpenInspector" class="btn-open-inspector" title="Mostra el panell de detall de la zona">
+        <span>‹</span>
+        <span>Detall de la zona</span>
+      </button>
+
+      <!-- Inspector / Explanation Drawer -->
+      <div id="inspectorDrawer" class="inspector-drawer">
+        <!-- Drawer Header -->
+        <div class="inspector-header">
+          <div class="inspector-title">
+            <h3 id="inspZoneName">Selecciona una zona</h3>
+            <div class="inspector-meta">
+              <span id="inspComarca" class="tag">Comarca</span>
+              <span id="inspElevation" class="tag">Altitud</span>
+              <span id="inspForest" class="tag">Bosc</span>
+              <span id="inspAspect" class="tag tag-aspect">Ombra / Orientació</span>
+              <span id="inspSoil" class="tag">Sòl</span>
+            </div>
+          </div>
+          <button id="btnCloseInspector" class="btn-close" title="Minimitza / Tanca el panell (Esc)">✕</button>
+        </div>
+
+        <!-- Drawer Scrollable Content -->
+        <div class="inspector-body">
+
+          <!-- Probability Score Card -->
+          <div class="prob-hero-card">
+            <div id="inspProbCircle" class="prob-circle">
+              <div id="inspProbNum">--%</div>
+              <span>ÍNDEX</span>
+            </div>
+            <div class="prob-details">
+              <h4 id="inspRatingLabel">Probabilitat</h4>
+              <p id="inspSpeciesName">Bolet seleccionat</p>
+            </div>
+          </div>
+
+          <!-- Natural Language Explanation Summary -->
+          <div class="summary-box" id="inspSummary">
+            Fes clic a qualsevol punt o zona del mapa per analitzar en profunditat les causes de la florada.
+          </div>
+
+          <!-- Factor Breakdown Section -->
+          <div>
+            <h4 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; color: #f8fafc;">
+              📊 Desglossament de Factors Ecològics
+            </h4>
+
+            <div class="factors-container">
+
+              <!-- 1. Precipitation -->
+              <div class="factor-item">
+                <div class="factor-header">
+                  <span>🌧️ Precipitació acumulada</span>
+                  <span id="barRainLabel" style="color: #60a5fa;">--</span>
+                </div>
+                <div class="factor-progress-bg">
+                  <div id="barRain" class="factor-progress-fill" style="width: 0%;"></div>
+                </div>
+                <div id="inspRainDetail" class="factor-explanation"></div>
+              </div>
+
+              <!-- 2. Soil Moisture -->
+              <div class="factor-item">
+                <div class="factor-header">
+                  <span>💧 Humitat del sòl (0-7 cm)</span>
+                  <span id="barSoilLabel" style="color: #38bdf8;">--</span>
+                </div>
+                <div class="factor-progress-bg">
+                  <div id="barSoil" class="factor-progress-fill" style="width: 0%;"></div>
+                </div>
+                <div id="inspSoilDetail" class="factor-explanation"></div>
+              </div>
+
+              <!-- 3. Temperature -->
+              <div class="factor-item">
+                <div class="factor-header">
+                  <span>🌡️ Règim tèrmic i glaçades</span>
+                  <span id="barTempLabel" style="color: #f59e0b;">--</span>
+                </div>
+                <div class="factor-progress-bg">
+                  <div id="barTemp" class="factor-progress-fill" style="width: 0%;"></div>
+                </div>
+                <div id="inspTempDetail" class="factor-explanation"></div>
+              </div>
+
+              <!-- 4. Habitat / Forest -->
+              <div class="factor-item">
+                <div class="factor-header">
+                  <span>🌲 Tipus de bosc i micorriza</span>
+                  <span id="barHabitatLabel" style="color: #10b981;">--</span>
+                </div>
+                <div class="factor-progress-bg">
+                  <div id="barHabitat" class="factor-progress-fill" style="width: 0%;"></div>
+                </div>
+                <div id="inspHabitatDetail" class="factor-explanation"></div>
+              </div>
+
+              <!-- 5. Elevation -->
+              <div class="factor-item">
+                <div class="factor-header">
+                  <span>🏔️ Idoneïtat d'Altitud</span>
+                  <span id="barElevationLabel" style="color: #a855f7;">--</span>
+                </div>
+                <div class="factor-progress-bg">
+                  <div id="barElevation" class="factor-progress-fill" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <!-- 6. Aspect & Shadowing (Obaga vs Solana) -->
+              <div class="factor-item">
+                <div class="factor-header">
+                  <span>🌓 Ombra i Orientació (Obaga / Solana)</span>
+                  <span id="barAspectLabel" style="color: #34d399;">--</span>
+                </div>
+                <div class="factor-progress-bg">
+                  <div id="barAspect" class="factor-progress-fill" style="width: 0%;"></div>
+                </div>
+                <div id="inspAspectDetail" class="factor-explanation"></div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 14-Day Meteorological Trend Chart -->
+          <div class="chart-card">
+            <h4>
+              <span>📈 Evolució Meteorològica (14 dies)</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted);">Pluja diària i Temp</span>
+            </h4>
+            <div style="height: 180px; position: relative;">
+              <canvas id="weatherChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Expert Advice Box -->
+          <div class="advice-box">
+            <strong>💡 Consells pràctics de cerca:</strong>
+            <span id="inspForagerTips"></span>
+          </div>
+
+          <!-- Toxicity Caution Box -->
+          <div class="warning-box">
+            <strong>⚠️ Alerta micològica i confusions:</strong>
+            <span id="inspToxicityWarning"></span>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/static/vendor/leaflet.js"></script>
+  <script src="/static/vendor/leaflet-heat.js"></script>
+  <script src="/static/vendor/chart.js"></script>
+
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/map.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
+
