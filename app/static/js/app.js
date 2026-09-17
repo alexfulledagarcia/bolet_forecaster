@@ -4,9 +4,10 @@ let state = {
   speciesList: [],
   forecastData: null,
   activeZoneId: null,
+  activeZoneData: null,
   searchFilter: "",
   comarcaFilter: "",
-  inspectorClosed: false
+  inspectorClosed: true
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -20,10 +21,10 @@ async function initApp() {
   // Setup UI event listeners
   setupEventListeners();
 
-  // Load initial data
+  // Load initial data without selecting any location
   await loadSpecies();
   await loadComarques();
-  await loadForecast(state.currentSpecies);
+  await loadForecast(state.currentSpecies, false);
 }
 
 function setupEventListeners() {
@@ -84,7 +85,7 @@ function setupEventListeners() {
       e.stopPropagation();
       state.inspectorClosed = true;
       drawer.classList.remove("open");
-      if (btnOpenInspector) {
+      if (btnOpenInspector && state.activeZoneId) {
         btnOpenInspector.style.display = "flex";
       }
     });
@@ -93,9 +94,62 @@ function setupEventListeners() {
   if (btnOpenInspector) {
     btnOpenInspector.addEventListener("click", (e) => {
       e.stopPropagation();
-      state.inspectorClosed = false;
-      drawer.classList.add("open");
-      btnOpenInspector.style.display = "none";
+      if (state.activeZoneId) {
+        state.inspectorClosed = false;
+        drawer.classList.add("open");
+        btnOpenInspector.style.display = "none";
+      }
+    });
+  }
+
+  // Clear Zone Selection button
+  const btnClearSelection = document.getElementById("btnClearSelection");
+  if (btnClearSelection) {
+    btnClearSelection.addEventListener("click", (e) => {
+      e.stopPropagation();
+      clearZoneSelection();
+    });
+  }
+
+  // Fine-Grain Detail Map button
+  const btnZoneDetailMap = document.getElementById("btnZoneDetailMap");
+  if (btnZoneDetailMap) {
+    btnZoneDetailMap.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (state.activeZoneData) {
+        const spName = state.forecastData ? state.forecastData.species.name_ca : "Bolet";
+        openZoneDetailMap(state.activeZoneData, spName);
+      }
+    });
+  }
+
+  // Close Detailed Modal button
+  const btnCloseDetailModal = document.getElementById("btnCloseDetailModal");
+  if (btnCloseDetailModal) {
+    btnCloseDetailModal.addEventListener("click", (e) => {
+      e.stopPropagation();
+      closeZoneDetailMap();
+    });
+  }
+
+  // Center on main map from modal
+  const btnCenterMainMap = document.getElementById("btnCenterMainMap");
+  if (btnCenterMainMap) {
+    btnCenterMainMap.addEventListener("click", () => {
+      closeZoneDetailMap();
+      if (state.activeZoneData) {
+        flyToCoordinates(state.activeZoneData.lat, state.activeZoneData.lon, 12);
+      }
+    });
+  }
+
+  // Click on modal backdrop to close
+  const detailedMapModal = document.getElementById("detailedMapModal");
+  if (detailedMapModal) {
+    detailedMapModal.addEventListener("click", (e) => {
+      if (e.target === detailedMapModal) {
+        closeZoneDetailMap();
+      }
     });
   }
 
@@ -118,11 +172,12 @@ function setupEventListeners() {
   // Close with Esc key
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      closeZoneDetailMap();
       closeSidebar();
       if (drawer && drawer.classList.contains("open")) {
         state.inspectorClosed = true;
         drawer.classList.remove("open");
-        if (btnOpenInspector) {
+        if (btnOpenInspector && state.activeZoneId) {
           btnOpenInspector.style.display = "flex";
         }
       }
@@ -197,8 +252,8 @@ function selectSpecies(speciesId) {
   // Re-render species active classes
   renderSpeciesGrid();
 
-  // Reload forecast
-  loadForecast(speciesId);
+  // Reload forecast and automatically select top location for new species
+  loadForecast(speciesId, true);
 }
 
 async function loadComarques() {
@@ -220,7 +275,7 @@ async function loadComarques() {
   }
 }
 
-async function loadForecast(speciesId) {
+async function loadForecast(speciesId, autoSelectTop = false) {
   showLoader(true);
   try {
     const res = await fetch(`/api/forecast?species_id=${speciesId}`);
@@ -233,11 +288,12 @@ async function loadForecast(speciesId) {
     // Update hotspots list
     filterAndRenderHotspots();
 
-    // If a zone is already active or open the top hotspot
-    if (state.activeZoneId) {
-      inspectZone(state.activeZoneId);
-    } else if (data.zones.length > 0) {
-      inspectZone(data.zones[0].zone_id, false);
+    // When changing species, auto-inspect top hotspot location
+    if (autoSelectTop && data.zones && data.zones.length > 0) {
+      inspectZone(data.zones[0].zone_id, true);
+    } else if (state.activeZoneId) {
+      // Re-inspect currently selected zone with new species metrics
+      inspectZone(state.activeZoneId, false);
     }
   } catch (err) {
     console.error("Error loading forecast:", err);
@@ -324,6 +380,8 @@ async function fetchNearestZone(lat, lon) {
     const res = await fetch(`/api/nearest-zone?lat=${lat}&lon=${lon}&species_id=${state.currentSpecies}`);
     if (res.ok) {
       const zoneData = await res.json();
+      state.activeZoneId = zoneData.zone_id;
+      state.activeZoneData = zoneData;
       renderZoneDetails(zoneData);
       flyToCoordinates(zoneData.lat, zoneData.lon, 10);
     }
@@ -338,13 +396,36 @@ async function inspectZone(zoneId, doFly = true) {
     const res = await fetch(`/api/zone/${zoneId}?species_id=${state.currentSpecies}`);
     if (res.ok) {
       const zoneData = await res.json();
+      state.activeZoneData = zoneData;
       renderZoneDetails(zoneData);
       if (doFly) {
         flyToCoordinates(zoneData.lat, zoneData.lon, 11);
+      } else {
+        highlightMarker(zoneData.lat, zoneData.lon);
       }
     }
   } catch (err) {
     console.error("Error inspecting zone:", err);
+  }
+}
+
+function clearZoneSelection() {
+  state.activeZoneId = null;
+  state.activeZoneData = null;
+  state.inspectorClosed = true;
+
+  const drawer = document.getElementById("inspectorDrawer");
+  if (drawer) {
+    drawer.classList.remove("open");
+  }
+
+  const btnOpenInspector = document.getElementById("btnOpenInspector");
+  if (btnOpenInspector) {
+    btnOpenInspector.style.display = "none";
+  }
+
+  if (typeof resetMapView === "function") {
+    resetMapView();
   }
 }
 

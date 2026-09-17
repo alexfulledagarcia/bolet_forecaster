@@ -162,11 +162,24 @@
               <span id="inspSoil" class="tag">Sòl</span>
             </div>
           </div>
-          <button id="btnCloseInspector" class="btn-close" title="Minimitza / Tanca el panell (Esc)">✕</button>
+          <div class="inspector-header-buttons">
+            <button id="btnClearSelection" class="btn-clear-selection" title="Deselecciona aquesta zona">✕ Neteja</button>
+            <button id="btnCloseInspector" class="btn-close" title="Minimitza el panell (Esc)">−</button>
+          </div>
         </div>
 
         <!-- Drawer Scrollable Content -->
         <div class="inspector-body">
+
+          <!-- Fine-Grain Detail Map Action Button -->
+          <button id="btnZoneDetailMap" class="btn-zone-detail-action" title="Obre el mapa topogràfic d'alta resolució i microhàbitats d'aquesta zona">
+            <div class="btn-detail-icon">🔍</div>
+            <div class="btn-detail-text">
+              <strong>Mapa detallat de la zona</strong>
+              <span>Micro-relleu, satèl·lit i orientacions</span>
+            </div>
+            <div class="btn-detail-arrow">›</div>
+          </button>
 
           <!-- Probability Score Card -->
           <div class="prob-hero-card">
@@ -294,6 +307,41 @@
       </div>
 
     </main>
+  <!-- Detailed Zone Map Modal (Fine-grain local relief & micro-habitats) -->
+  <div id="detailedMapModal" class="modal-backdrop">
+    <div class="modal-content detailed-map-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">🏔️</span>
+          <div>
+            <h3 id="detailModalZoneName">Mapa Detallat</h3>
+            <p id="detailModalSub" class="modal-subtitle">Micro-relleu, orientacions i sectors forestals</p>
+          </div>
+        </div>
+        <div class="modal-header-actions">
+          <div class="submap-layer-selector">
+            <button type="button" class="submap-btn active" data-sublayer="satellite">🛰️ Satèl·lit</button>
+            <button type="button" class="submap-btn" data-sublayer="topo">🗺️ Topo</button>
+          </div>
+          <button id="btnCloseDetailModal" class="btn-close" title="Tanca el mapa detallat">✕</button>
+        </div>
+      </div>
+      <div class="modal-body detailed-map-body">
+        <div id="detailSubMap" class="detail-submap"></div>
+        <div class="detail-map-legend">
+          <div class="micro-badge micro-obaga">🌲 Obaga (Nord / Humida)</div>
+          <div class="micro-badge micro-solana">☀️ Solana (Sud / Càlida)</div>
+          <div class="micro-badge micro-fons">💧 Fons de Vall / Riera</div>
+          <div class="micro-badge micro-cota">🏔️ Cota Superior</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div id="detailModalTips" class="detail-modal-tips">
+          <span>💡</span> <span id="detailModalTipsText">Explora les obagues i fons de vall per trobar la màxima concentració d'humitat.</span>
+        </div>
+        <button id="btnCenterMainMap" class="btn btn-secondary">Centra al mapa general</button>
+      </div>
+    </div>
   </div>
 
   <!-- Scripts -->
