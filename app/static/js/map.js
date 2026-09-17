@@ -207,22 +207,24 @@ function initDetailSubMap() {
   if (subMap) return;
 
   subMapLayers = {
-    satellite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-      attribution: '&copy; Esri',
-      maxZoom: 18
-    }),
     topo: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", {
       attribution: '&copy; Esri Topo',
       maxZoom: 18
+    }),
+    satellite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      attribution: '&copy; Esri Satèl·lit',
+      maxZoom: 18
     })
   };
+
+  subMapCurrentLayer = "topo";
 
   subMap = L.map("detailSubMap", {
     center: [41.78, 1.85],
     zoom: 13,
     minZoom: 10,
     maxZoom: 17,
-    layers: [subMapLayers.satellite],
+    layers: [subMapLayers.topo],
     zoomControl: true
   });
 
@@ -247,7 +249,7 @@ function setDetailSubMapLayer(layerKey) {
   subMapCurrentLayer = layerKey;
 }
 
-function openZoneDetailMap(zone, speciesName = "Bolet") {
+function openZoneDetailMap(zone, speciesObj) {
   currentDetailZone = zone;
   const modal = document.getElementById("detailedMapModal");
   if (!modal) return;
@@ -257,12 +259,7 @@ function openZoneDetailMap(zone, speciesName = "Bolet") {
   // Populate headers
   document.getElementById("detailModalZoneName").textContent = zone.name;
   document.getElementById("detailModalSub").textContent =
-    `${zone.comarca} (${zone.region}) • ${zone.elevation_m}m • ${zone.forest_type.split("(")[0]}`;
-
-  const tipsText = document.getElementById("detailModalTipsText");
-  if (tipsText && zone.explanation) {
-    tipsText.textContent = zone.explanation.aspect_detail || "Comprova les fondalades i obagues per a la màxima retenció d'aigua.";
-  }
+    `${zone.comarca} (${zone.region}) • Cota central: ${zone.elevation_m}m • Bosc: ${zone.forest_type.split("(")[0]}`;
 
   // Initialize sub-map if first time
   initDetailSubMap();
@@ -271,7 +268,8 @@ function openZoneDetailMap(zone, speciesName = "Bolet") {
   setTimeout(() => {
     subMap.invalidateSize();
     subMap.setView([zone.lat, zone.lon], 13);
-    renderZoneMicroSectors(zone, speciesName);
+    renderZoneDetailedMap(zone, speciesObj);
+    renderAltitudeAndShadeAssessment(zone, speciesObj);
   }, 100);
 }
 
@@ -282,7 +280,7 @@ function closeZoneDetailMap() {
   }
 }
 
-function renderZoneMicroSectors(zone, speciesName) {
+function renderZoneDetailedMap(zone, speciesObj) {
   if (!subMapItemsLayer) return;
   subMapItemsLayer.clearLayers();
 
@@ -290,17 +288,17 @@ function renderZoneMicroSectors(zone, speciesName) {
   const lat = zone.lat;
   const lon = zone.lon;
 
-  // 1. Perimeter zone circle (1.5 km radius)
+  // 1. Perimeter zone envelope (1.5 km radius)
   L.circle([lat, lon], {
     radius: 1500,
     color: "#38bdf8",
     weight: 2,
     dashArray: "6, 6",
     fillColor: "#38bdf8",
-    fillOpacity: 0.08
+    fillOpacity: 0.06
   }).addTo(subMapItemsLayer);
 
-  // 2. Center Core Hotspot Marker
+  // 2. Real central massif location pin
   const coreMarker = L.circleMarker([lat, lon], {
     radius: 10,
     fillColor: getProbColor(baseProb),
@@ -312,73 +310,149 @@ function renderZoneMicroSectors(zone, speciesName) {
 
   coreMarker.bindPopup(`
     <div style="font-family: var(--font-family); padding: 4px;">
-      <strong style="color: #0f172a; font-size: 13px;">📍 ${zone.name} (Nucli)</strong><br/>
-      <span style="color: #475569; font-size: 12px;">Probabilitat base: <strong>${baseProb}%</strong></span><br/>
-      <span style="color: #0284c7; font-size: 11px;">Altitud: ${zone.elevation_m}m • ${zone.forest_type.split("(")[0]}</span>
+      <strong style="color: #0f172a; font-size: 13px;">📍 ${zone.name}</strong><br/>
+      <span style="color: #475569; font-size: 12px;">Cota de referència: <strong>${zone.elevation_m}m</strong></span><br/>
+      <span style="color: #0284c7; font-size: 11px;">${zone.forest_type.split("(")[0]} • ${zone.aspect}</span>
     </div>
   `).openPopup();
+}
 
-  // 3. Micro-Sector Waypoints
-  const microSectors = [
-    {
-      title: "🌲 Obaga Humida (Nord)",
-      desc: "Vessant de menor insolació i evaporació. Reté la humitat 2-3 setmanes més.",
-      offsetLat: 0.010,
-      offsetLon: 0.002,
-      prob: Math.min(100, Math.round(baseProb * 1.12)),
-      color: "#10b981",
-      border: "#6ee7b7"
-    },
-    {
-      title: "☀️ Solana Càlida (Sud)",
-      desc: "Major insolació tèrmica. Favorable en setmanes fredes o començament de glaçades.",
-      offsetLat: -0.010,
-      offsetLon: -0.002,
-      prob: Math.max(10, Math.round(baseProb * 0.90)),
-      color: "#f59e0b",
-      border: "#fcd34d"
-    },
-    {
-      title: "💧 Fons de Vall / Torrent",
-      desc: "Acumulació d'aigua d'escorriment superficial i màxima molsa.",
-      offsetLat: -0.002,
-      offsetLon: 0.009,
-      prob: Math.min(100, Math.round(baseProb * 1.15)),
-      color: "#3b82f6",
-      border: "#93c5fd"
-    },
-    {
-      title: "🏔️ Cota Superior / Carena",
-      desc: "Àrea alta més ventilada; atenció al xoc tèrmic nocturn.",
-      offsetLat: 0.007,
-      offsetLon: -0.008,
-      prob: Math.max(10, Math.round(baseProb * 0.86)),
-      color: "#a855f7",
-      border: "#d8b4fe"
-    }
-  ];
+function renderAltitudeAndShadeAssessment(zone, speciesObj) {
+  const elevContainer = document.getElementById("detailAltitudeTiers");
+  const aspectContainer = document.getElementById("detailAspectTiers");
+  const altSub = document.getElementById("detailAltSubtitle");
+  const tactSub = document.getElementById("detailTacticalSubtitle");
+  const tactText = document.getElementById("detailTacticalAdviceText");
 
-  microSectors.forEach(sec => {
-    const sLat = lat + sec.offsetLat;
-    const sLon = lon + sec.offsetLon;
+  const species = (speciesObj && speciesObj.optimal_elevation_m) ? speciesObj : {
+    name_ca: "Espècie seleccionada",
+    elevation_min_m: 500,
+    elevation_max_m: 1900,
+    optimal_elevation_m: [800, 1600]
+  };
 
-    const marker = L.circleMarker([sLat, sLon], {
-      radius: 8,
-      fillColor: sec.color,
-      color: sec.border,
-      weight: 2,
-      opacity: 0.95,
-      fillOpacity: 0.9
+  if (altSub) {
+    altSub.textContent = `Franja òptima de ${species.name_ca.split("(")[0].trim()}: ${species.optimal_elevation_m[0]}m – ${species.optimal_elevation_m[1]}m (Límit: ${species.elevation_min_m}m – ${species.elevation_max_m}m)`;
+  }
+
+  const zoneElev = zone.elevation_m;
+  const tempMean = zone.factors ? zone.factors.temp_mean_c : 14.0;
+  const rain14d = zone.factors ? zone.factors.rain_14d_mm : 40.0;
+  const soilMoist = zone.factors ? zone.factors.soil_moisture_pct : 30;
+
+  // --- 1. ALTITUDE TIERS EVALUATION ---
+  if (elevContainer) {
+    elevContainer.innerHTML = "";
+
+    const lowElev = Math.max(120, Math.round(zoneElev - 320));
+    const midElev = zoneElev;
+    const highElev = Math.round(zoneElev + 320);
+
+    const lowTemp = (tempMean + 2.1).toFixed(1);
+    const midTemp = tempMean.toFixed(1);
+    const highTemp = (tempMean - 2.1).toFixed(1);
+
+    const tiers = [
+      {
+        name: "Cota Baixa / Peu de massís",
+        elev: `${lowElev} m`,
+        temp: `${lowTemp}°C`,
+        statusClass: (lowElev >= species.optimal_elevation_m[0] && lowElev <= species.optimal_elevation_m[1]) ? "alt-optimal" :
+                     (lowElev >= species.elevation_min_m && lowElev <= species.elevation_max_m) ? "alt-favorable" : "alt-marginal",
+        statusText: (lowElev >= species.optimal_elevation_m[0] && lowElev <= species.optimal_elevation_m[1]) ? `Òptima (${lowTemp}°C)` :
+                    (lowElev >= species.elevation_min_m && lowElev <= species.elevation_max_m) ? `Acceptable (${lowTemp}°C)` : `Fora de rang (${lowTemp}°C)`,
+        desc: lowElev < species.elevation_min_m ? "Altitud massa baixa per a aquesta espècie de muntanya." : "Més càlida (+2°C). Idònia si fa fred a dalt o tard a la tardor."
+      },
+      {
+        name: "Cota Mitjana (Cota Central)",
+        elev: `${midElev} m`,
+        temp: `${midTemp}°C`,
+        statusClass: (midElev >= species.optimal_elevation_m[0] && midElev <= species.optimal_elevation_m[1]) ? "alt-optimal" :
+                     (midElev >= species.elevation_min_m && midElev <= species.elevation_max_m) ? "alt-favorable" : "alt-marginal",
+        statusText: (midElev >= species.optimal_elevation_m[0] && midElev <= species.optimal_elevation_m[1]) ? `Òptima (${midTemp}°C)` :
+                    (midElev >= species.elevation_min_m && midElev <= species.elevation_max_m) ? `Favorable (${midTemp}°C)` : `Marginal (${midTemp}°C)`,
+        desc: "Nucli de la zona. Concentra la massa forestal de referència."
+      },
+      {
+        name: "Cota Alta / Carenes",
+        elev: `${highElev} m`,
+        temp: `${highTemp}°C`,
+        statusClass: (highTemp < 4.0) ? "alt-marginal" :
+                     (highElev >= species.optimal_elevation_m[0] && highElev <= species.optimal_elevation_m[1]) ? "alt-optimal" :
+                     (highElev >= species.elevation_min_m && highElev <= species.elevation_max_m) ? "alt-favorable" : "alt-marginal",
+        statusText: (highTemp < 4.0) ? `Risc gelada (${highTemp}°C)` :
+                    (highElev >= species.optimal_elevation_m[0] && highElev <= species.optimal_elevation_m[1]) ? `Òptima (${highTemp}°C)` : `Freda (${highTemp}°C)`,
+        desc: highTemp < 4.0 ? "Ventilació forta i baixes temperatures nocturnes que frenen el miceli." : "Ambient frescal d'altura."
+      }
+    ];
+
+    tiers.forEach(t => {
+      const item = document.createElement("div");
+      item.className = "alt-tier-item";
+      item.innerHTML = `
+        <div class="alt-tier-label">
+          <div class="alt-tier-name">${t.name} <span class="alt-tier-elev">(${t.elev})</span></div>
+          <div style="font-size: 0.7rem; color: #94a3b8;">${t.desc}</div>
+        </div>
+        <div class="alt-tier-status ${t.statusClass}">${t.statusText}</div>
+      `;
+      elevContainer.appendChild(item);
     });
+  }
 
-    marker.bindPopup(`
-      <div style="font-family: var(--font-family); min-width: 170px; padding: 4px;">
-        <strong style="color: #0f172a; font-size: 13px;">${sec.title}</strong><br/>
-        <span style="color: ${sec.color}; font-weight: bold; font-size: 12px;">Índex estimat: ${sec.prob}%</span><br/>
-        <p style="color: #475569; font-size: 11px; margin: 4px 0 0 0; line-height: 1.3;">${sec.desc}</p>
-      </div>
-    `);
+  // --- 2. SHADES & ASPECT TIERS EVALUATION ---
+  if (aspectContainer) {
+    aspectContainer.innerHTML = "";
 
-    subMapItemsLayer.addLayer(marker);
-  });
+    const aspects = [
+      {
+        title: "🌲 Obaga (Vessant Nord / Ombres)",
+        scoreClass: "alt-optimal",
+        scoreText: "Retenció hídrica màxima (+25%)",
+        desc: `Rep mínima radiació solar directa. Gràcies als ${rain14d} mm recents, manté la capa de molsa humida i evita l'evaporació diürna. Excel·lent per a Ceps, Camagrocs i Trompetes.`
+      },
+      {
+        title: "☀️ Solana (Vessant Sud / Assolellat)",
+        scoreClass: rain14d < 40 ? "alt-marginal" : "alt-favorable",
+        scoreText: rain14d < 40 ? "Assecament ràpid" : "Sòl temperat",
+        desc: `Radiació tèrmica elevada. El sòl s'escalfa ràpidament però perd humitat en pocs dies. Idònia per al Rovelló de sang sobre calcari o quan les nits són molt fredes.`
+      },
+      {
+        title: "💧 Fons de Vall / Torrents i Fondalades",
+        scoreClass: "alt-optimal",
+        scoreText: "Refugi hídric permanent",
+        desc: `Conflueix l'escorriment de les aigües de tot el massís. És la zona més protegida del vent i on el miceli aguanta millor períodes curts de sequera.`
+      }
+    ];
+
+    aspects.forEach(a => {
+      const item = document.createElement("div");
+      item.className = "aspect-tier-item";
+      item.innerHTML = `
+        <div class="aspect-tier-head">
+          <span class="aspect-tier-title">${a.title}</span>
+          <span class="alt-tier-status ${a.scoreClass}">${a.scoreText}</span>
+        </div>
+        <p class="aspect-tier-desc">${a.desc}</p>
+      `;
+      aspectContainer.appendChild(item);
+    });
+  }
+
+  // --- 3. TACTICAL FORAGING ADVICE ---
+  if (tactSub) {
+    tactSub.textContent = `Estratègia recomanada per a ${zone.name}`;
+  }
+
+  if (tactText) {
+    let advice = "";
+    if (rain14d < 35) {
+      advice = `La pluja acumulada ha estat modesta (${rain14d} mm). Evita completament les solanes assecades pel vent. <strong>Centra la teva cerca exclusivament a les obagues denses i fons de torrentera</strong> entre els <strong>${Math.max(lowElev, species.optimal_elevation_m[0])}m i ${Math.min(zoneElev + 150, species.optimal_elevation_m[1])}m</strong>, on la molsa protegeix el sòl.`;
+    } else if (tempMean < 8.0) {
+      advice = `Les temperatures a cotes altes són ja molt fresques (${tempMean}°C de mitjana) amb risc de terra fred. Recomanem <strong>baixar cap a la cota mitjana-baixa (~${Math.max(lowElev, species.elevation_min_m)}m)</strong> i explorar <strong>replans arrecerats i solanes suaus</strong> que rebin radiació solar diürna.`;
+    } else {
+      advice = `Aquest massís compta amb molt bon equilibri d'humitat (${rain14d} mm en 14 dies) i temperatura (${tempMean}°C). La franja amb més potencial és la <strong>cota mitjana (${zoneElev}m) a l'obaga</strong>, estenent la cerca per boscos madurs de ${zone.forest_type.split("(")[0].trim()}.`;
+    }
+    tactText.innerHTML = advice;
+  }
 }

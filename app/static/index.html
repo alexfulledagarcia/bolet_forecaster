@@ -326,19 +326,61 @@
           <button id="btnCloseDetailModal" class="btn-close" title="Tanca el mapa detallat">✕</button>
         </div>
       </div>
-      <div class="modal-body detailed-map-body">
-        <div id="detailSubMap" class="detail-submap"></div>
-        <div class="detail-map-legend">
-          <div class="micro-badge micro-obaga">🌲 Obaga (Nord / Humida)</div>
-          <div class="micro-badge micro-solana">☀️ Solana (Sud / Càlida)</div>
-          <div class="micro-badge micro-fons">💧 Fons de Vall / Riera</div>
-          <div class="micro-badge micro-cota">🏔️ Cota Superior</div>
+      <div class="modal-body detailed-modal-layout">
+        <!-- Left / Top: High-Res Topo Map Viewport -->
+        <div class="detailed-map-wrapper">
+          <div id="detailSubMap" class="detail-submap"></div>
+          <div class="submap-floating-hint">
+            <span>🗺️ Corbes de nivell, relleu i pistes forestals</span>
+          </div>
+        </div>
+
+        <!-- Right / Bottom: Altitude & Shades Assessment Panel -->
+        <div class="detailed-assessment-container">
+          
+          <!-- 1. Altitude Assessment Card -->
+          <div class="detail-assessment-card">
+            <div class="detail-card-head">
+              <span class="detail-card-icon">🏔️</span>
+              <div>
+                <h4>Avaluació per Cotes d'Altitud</h4>
+                <p id="detailAltSubtitle" class="detail-card-sub">Franja altitudinal de l'espècie</p>
+              </div>
+            </div>
+            <div id="detailAltitudeTiers" class="altitude-tiers-list">
+              <!-- Dynamically populated: Cota Baixa, Cota Mitjana, Cota Alta -->
+            </div>
+          </div>
+
+          <!-- 2. Shades / Aspect Assessment Card -->
+          <div class="detail-assessment-card">
+            <div class="detail-card-head">
+              <span class="detail-card-icon">🌓</span>
+              <div>
+                <h4>Avaluació d'Ombra i Orientació</h4>
+                <p class="detail-card-sub">Microclima hídric i tèrmic</p>
+              </div>
+            </div>
+            <div id="detailAspectTiers" class="aspect-tiers-list">
+              <!-- Dynamically populated: Obaga vs Solana vs Fons de Vall -->
+            </div>
+          </div>
+
+          <!-- 3. Tactical Recommendation Card -->
+          <div class="detail-assessment-card detail-tactical-card">
+            <div class="detail-card-head">
+              <span class="detail-card-icon">🧭</span>
+              <div>
+                <h4>Consell Tàctic de Recerca</h4>
+                <p id="detailTacticalSubtitle" class="detail-card-sub">On cercar exactament en aquest massís</p>
+              </div>
+            </div>
+            <p id="detailTacticalAdviceText" class="tactical-advice-body"></p>
+          </div>
+
         </div>
       </div>
       <div class="modal-footer">
-        <div id="detailModalTips" class="detail-modal-tips">
-          <span>💡</span> <span id="detailModalTipsText">Explora les obagues i fons de vall per trobar la màxima concentració d'humitat.</span>
-        </div>
         <button id="btnCenterMainMap" class="btn btn-secondary">Centra al mapa general</button>
       </div>
     </div>

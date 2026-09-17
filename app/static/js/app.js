@@ -117,8 +117,8 @@ function setupEventListeners() {
     btnZoneDetailMap.addEventListener("click", (e) => {
       e.stopPropagation();
       if (state.activeZoneData) {
-        const spName = state.forecastData ? state.forecastData.species.name_ca : "Bolet";
-        openZoneDetailMap(state.activeZoneData, spName);
+        const speciesObj = state.forecastData ? state.forecastData.species : null;
+        openZoneDetailMap(state.activeZoneData, speciesObj);
       }
     });
   }

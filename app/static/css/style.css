@@ -748,10 +748,20 @@ header {
   color: #ffffff;
 }
 
-.detailed-map-body {
+.detailed-modal-layout {
   flex: 1;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.detailed-map-wrapper {
+  flex: 1 1 52%;
   position: relative;
   min-height: 0;
+  border-right: 1px solid var(--border-color);
 }
 
 .detail-submap {
@@ -760,54 +770,178 @@ header {
   background: #0b1320;
 }
 
-.detail-map-legend {
+.submap-floating-hint {
   position: absolute;
-  bottom: 16px;
-  left: 16px;
+  bottom: 12px;
+  left: 12px;
   z-index: 1000;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  background: rgba(11, 19, 32, 0.88);
-  backdrop-filter: blur(6px);
-  padding: 8px 12px;
-  border-radius: 8px;
+  background: rgba(11, 19, 32, 0.85);
+  backdrop-filter: blur(4px);
+  padding: 5px 10px;
+  border-radius: 6px;
   border: 1px solid var(--border-color);
+  font-size: 0.72rem;
+  color: #94a3b8;
   pointer-events: none;
 }
 
-.micro-badge {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.detailed-assessment-container {
+  flex: 1 1 48%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  overflow-y: auto;
+  background: rgba(11, 19, 32, 0.45);
 }
 
-.micro-obaga {
+.detail-assessment-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.detail-card-icon {
+  font-size: 1.35rem;
+}
+
+.detail-card-head h4 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.detail-card-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin: 2px 0 0 0;
+}
+
+/* Altitude Tiers */
+.altitude-tiers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alt-tier-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 8px 10px;
+  gap: 10px;
+}
+
+.alt-tier-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alt-tier-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.alt-tier-elev {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.alt-tier-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.alt-optimal {
   background: rgba(16, 185, 129, 0.2);
   color: #6ee7b7;
   border: 1px solid rgba(16, 185, 129, 0.4);
 }
 
-.micro-solana {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fcd34d;
-  border: 1px solid rgba(245, 158, 11, 0.4);
+.alt-favorable {
+  background: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.4);
 }
 
-.micro-fons {
-  background: rgba(59, 130, 246, 0.2);
-  color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.4);
+.alt-marginal {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
+  border: 1px solid rgba(249, 115, 22, 0.4);
 }
 
-.micro-cota {
-  background: rgba(168, 85, 247, 0.2);
-  color: #d8b4fe;
-  border: 1px solid rgba(168, 85, 247, 0.4);
+/* Aspect Tiers */
+.aspect-tiers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aspect-tier-item {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.aspect-tier-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.aspect-tier-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.aspect-tier-score {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.aspect-tier-desc {
+  font-size: 0.72rem;
+  color: #cbd5e1;
+  line-height: 1.35;
+  margin: 0;
+}
+
+/* Tactical Advice */
+.detail-tactical-card {
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.25) 0%, rgba(15, 23, 42, 0.7) 100%);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.tactical-advice-body {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #e2e8f0;
+  margin: 0;
 }
 
 .modal-footer {
@@ -1307,33 +1441,25 @@ header {
     font-size: 0.68rem;
   }
 
-  .submap-btn {
-    padding: 4px 8px;
-    font-size: 0.7rem;
+  .detailed-modal-layout {
+    flex-direction: column;
   }
 
-  .detail-map-legend {
-    bottom: 8px;
-    left: 8px;
-    right: 8px;
-    padding: 6px 8px;
-    gap: 4px;
+  .detailed-map-wrapper {
+    height: 260px;
+    min-height: 230px;
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
   }
 
-  .micro-badge {
-    font-size: 0.65rem;
-    padding: 2px 5px;
+  .detailed-assessment-container {
+    padding: 12px;
+    gap: 10px;
   }
 
   .modal-footer {
     padding: 8px 14px;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-
-  .detail-modal-tips {
-    font-size: 0.7rem;
   }
 }
 
