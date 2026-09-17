@@ -63,7 +63,7 @@ class WeatherService:
 
         return cached_zones
 
-    def _fetch_from_open_meteo(self, zones: List[Dict[str, Any]], chunk_size: int = 25) -> Dict[str, Dict[str, Any]]:
+    def _fetch_from_open_meteo(self, zones: List[Dict[str, Any]], chunk_size: int = 30) -> Dict[str, Dict[str, Any]]:
         results: Dict[str, Dict[str, Any]] = {}
         total = len(zones)
 

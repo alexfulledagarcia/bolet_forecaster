@@ -78,8 +78,8 @@ function updateMapData(zones, heatmapPoints) {
 
   if (heatmapPoints && heatmapPoints.length > 0 && typeof L.heatLayer === "function") {
     heatLayer = L.heatLayer(heatmapPoints, {
-      radius: 38,
-      blur: 26,
+      radius: 28,
+      blur: 18,
       maxZoom: 12,
       max: 1.0,
       gradient: {
@@ -99,13 +99,13 @@ function updateMapData(zones, heatmapPoints) {
   zones.forEach(zone => {
     const prob = zone.probability;
     const color = getProbColor(prob);
-    const radius = Math.max(6, Math.min(13, Math.round(prob / 8)));
+    const radius = Math.max(5, Math.min(10, Math.round(prob / 10)));
 
     const circle = L.circleMarker([zone.lat, zone.lon], {
       radius: radius,
       fillColor: color,
-      color: prob >= 75 ? "#f8fafc" : "#e2e8f0",
-      weight: prob >= 75 ? 2.5 : 1.5,
+      color: prob >= 75 ? "#f8fafc" : "#cbd5e1",
+      weight: prob >= 75 ? 2 : 1.2,
       opacity: 0.95,
       fillOpacity: 0.85
     });
