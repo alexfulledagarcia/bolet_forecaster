@@ -99,16 +99,49 @@ function setupEventListeners() {
     });
   }
 
+  // Mobile sidebar drawer toggles
+  const btnToggleSidebar = document.getElementById("btnToggleSidebar");
+  if (btnToggleSidebar) {
+    btnToggleSidebar.addEventListener("click", openSidebar);
+  }
+
+  const btnCloseSidebar = document.getElementById("btnCloseSidebar");
+  if (btnCloseSidebar) {
+    btnCloseSidebar.addEventListener("click", closeSidebar);
+  }
+
+  const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+  if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener("click", closeSidebar);
+  }
+
   // Close with Esc key
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && drawer && drawer.classList.contains("open")) {
-      state.inspectorClosed = true;
-      drawer.classList.remove("open");
-      if (btnOpenInspector) {
-        btnOpenInspector.style.display = "flex";
+    if (e.key === "Escape") {
+      closeSidebar();
+      if (drawer && drawer.classList.contains("open")) {
+        state.inspectorClosed = true;
+        drawer.classList.remove("open");
+        if (btnOpenInspector) {
+          btnOpenInspector.style.display = "flex";
+        }
       }
     }
   });
+}
+
+function openSidebar() {
+  const sidebar = document.getElementById("appSidebar");
+  const backdrop = document.getElementById("sidebarBackdrop");
+  if (sidebar) sidebar.classList.add("open");
+  if (backdrop) backdrop.classList.add("active");
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById("appSidebar");
+  const backdrop = document.getElementById("sidebarBackdrop");
+  if (sidebar) sidebar.classList.remove("open");
+  if (backdrop) backdrop.classList.remove("active");
 }
 
 async function loadSpecies() {
@@ -123,38 +156,45 @@ async function loadSpecies() {
 
 function renderSpeciesGrid() {
   const container = document.getElementById("speciesGrid");
-  if (!container) return;
+  const mobileBar = document.getElementById("mobileSpeciesBar");
 
-  container.innerHTML = "";
-
-  state.speciesList.forEach(sp => {
-    const card = document.createElement("div");
-    card.className = `species-card ${sp.id === state.currentSpecies ? "active" : ""}`;
-    card.onclick = () => selectSpecies(sp.id);
-
-    card.innerHTML = `
-      <div class="species-card-header">
-        <span class="species-icon">${sp.icon}</span>
-        <div>
-          <div class="species-name">${sp.name_ca.split("(")[0]}</div>
-          <div class="species-sci">${sp.scientific_name.split("/")[0]}</div>
+  if (container) {
+    container.innerHTML = "";
+    state.speciesList.forEach(sp => {
+      const card = document.createElement("div");
+      card.className = `species-card ${sp.id === state.currentSpecies ? "active" : ""}`;
+      card.onclick = () => selectSpecies(sp.id);
+      card.innerHTML = `
+        <div class="species-card-header">
+          <span class="species-icon">${sp.icon}</span>
+          <div>
+            <div class="species-name">${sp.name_ca.split("(")[0]}</div>
+            <div class="species-sci">${sp.scientific_name.split("/")[0]}</div>
+          </div>
         </div>
-      </div>
-    `;
+      `;
+      container.appendChild(card);
+    });
+  }
 
-    container.appendChild(card);
-  });
+  if (mobileBar) {
+    mobileBar.innerHTML = "";
+    state.speciesList.forEach(sp => {
+      const pill = document.createElement("button");
+      pill.type = "button";
+      pill.className = `mobile-species-pill ${sp.id === state.currentSpecies ? "active" : ""}`;
+      pill.onclick = () => selectSpecies(sp.id);
+      pill.innerHTML = `<span>${sp.icon}</span> <span>${sp.name_ca.split("(")[0].trim()}</span>`;
+      mobileBar.appendChild(pill);
+    });
+  }
 }
 
 function selectSpecies(speciesId) {
   if (state.currentSpecies === speciesId) return;
   state.currentSpecies = speciesId;
 
-  // Update cards active state
-  document.querySelectorAll(".species-card").forEach(c => c.classList.remove("active"));
-  const activeCard = Array.from(document.querySelectorAll(".species-card")).find(c =>
-    c.onclick && c.onclick.toString().includes(`selectSpecies("${speciesId}")`)
-  );
+  // Re-render species active classes
   renderSpeciesGrid();
 
   // Reload forecast
@@ -240,6 +280,9 @@ function filterAndRenderHotspots() {
     const item = document.createElement("div");
     item.className = "hotspot-item";
     item.onclick = () => {
+      if (window.innerWidth <= 768) {
+        closeSidebar();
+      }
       flyToCoordinates(z.lat, z.lon, 11);
       inspectZone(z.zone_id);
     };

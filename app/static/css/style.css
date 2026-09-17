@@ -41,6 +41,33 @@ header {
   align-items: center;
   justify-content: space-between;
   z-index: 1000;
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-menu-toggle {
+  display: none; /* Desktop hidden */
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-menu-toggle:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--primary);
 }
 
 .brand {
@@ -59,6 +86,7 @@ header {
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+  flex-shrink: 0;
 }
 
 .brand h1 {
@@ -71,6 +99,23 @@ header {
 .brand p {
   font-size: 0.8rem;
   color: var(--text-muted);
+}
+
+/* Mobile Sidebar Elements (Desktop Hidden) */
+.sidebar-mobile-header {
+  display: none;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+.mobile-species-bar {
+  display: none;
+}
+
+.drawer-handle-bar {
+  display: none;
 }
 
 .header-actions {
@@ -717,27 +762,256 @@ header {
   margin-bottom: 4px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 900px) {
+/* Responsive adjustments for Mobile & Tablets */
+@media (max-width: 768px) {
+  /* Slim Mobile Header */
+  header {
+    padding: 8px 12px;
+  }
+
+  .btn-menu-toggle {
+    display: inline-flex;
+  }
+
+  .brand h1 {
+    font-size: 1.05rem;
+  }
+
+  .brand-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 20px;
+  }
+
+  .brand-subtitle {
+    display: none !important;
+  }
+
+  .btn-refresh {
+    padding: 6px 10px;
+    font-size: 0.82rem;
+  }
+
+  .btn-refresh .btn-text {
+    display: none;
+  }
+
+  /* Fullscreen Map Viewport */
   .app-container {
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
   }
-  .sidebar {
+
+  .map-container {
     width: 100%;
-    height: 300px;
-    border-right: none;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Off-Canvas Mobile Sidebar */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 85%;
+    max-width: 320px;
+    height: 100vh;
+    z-index: 1200;
+    background: rgba(19, 31, 51, 0.98);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid var(--border-color);
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 10px 0 35px rgba(0, 0, 0, 0.8);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border-color);
   }
-  .inspector-drawer {
-    width: 95%;
-    right: 2.5%;
-    bottom: 10px;
-    top: auto;
-    height: 75%;
-    transform: translateY(110%);
+
+  .btn-close-sidebar {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-muted);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
   }
+
+  .btn-close-sidebar:hover {
+    color: #ffffff;
+    border-color: var(--danger);
+  }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 1150;
+  }
+
+  .sidebar-backdrop.active {
+    display: block;
+  }
+
+  /* Mobile Fast Species Selector (Swipeable Pills) */
+  .mobile-species-bar {
+    display: flex;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    z-index: 820;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 5px 8px;
+    gap: 8px;
+    background: rgba(11, 19, 32, 0.9);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border-color);
+    border-radius: 25px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .mobile-species-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-species-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-radius: 18px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-species-pill.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+  }
+
+  /* Map Controls on Mobile (Placed right below species pill bar) */
+  .map-controls-panel {
+    top: 56px;
+    left: 10px;
+    padding: 4px 8px;
+    gap: 6px;
+    max-width: calc(100% - 20px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .basemap-btn {
+    padding: 3px 6px;
+    font-size: 0.72rem;
+  }
+
+  .control-toggle {
+    font-size: 0.72rem;
+  }
+
+  /* Map Legend on Mobile */
+  .map-legend {
+    bottom: 12px;
+    left: 10px;
+    padding: 6px 10px;
+    font-size: 0.68rem;
+  }
+
+  .legend-bar {
+    width: 120px;
+    height: 7px;
+  }
+
+  /* Floating Reopen Button on Mobile */
+  .btn-open-inspector {
+    top: auto;
+    bottom: 16px;
+    right: 12px;
+    border-radius: 20px;
+    border-right: 1px solid var(--border-color);
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Inspector Drawer as Mobile Bottom Sheet */
+  .inspector-drawer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    height: 78vh;
+    max-height: 85vh;
+    border-radius: 20px 20px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    transform: translateY(105%);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1100;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.7);
+  }
+
   .inspector-drawer.open {
     transform: translateY(0);
+  }
+
+  .drawer-handle-bar {
+    display: block;
+    width: 38px;
+    height: 4px;
+    background: #475569;
+    border-radius: 2px;
+    margin: 8px auto 0 auto;
+    flex-shrink: 0;
+  }
+
+  .inspector-header {
+    padding: 10px 16px;
+  }
+
+  .inspector-title h3 {
+    font-size: 1.05rem;
+  }
+
+  .inspector-body {
+    padding: 14px 16px;
+    gap: 16px;
   }
 }
 

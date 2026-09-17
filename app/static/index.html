@@ -14,26 +14,42 @@
 
   <!-- Top Header Navigation -->
   <header>
-    <div class="brand">
-      <div class="brand-icon">🍄</div>
-      <div>
-        <h1>Bolet Forecaster Catalunya</h1>
-        <p>Previsió ecològica basada en meteorologia oberta, relleu, ombra (obagues) i masses forestals</p>
+    <div class="header-left">
+      <button id="btnToggleSidebar" class="btn-menu-toggle" title="Obre el menú de filtres i zones">
+        <span>☰</span>
+      </button>
+      <div class="brand">
+        <div class="brand-icon">🍄</div>
+        <div>
+          <h1>Bolet Forecaster</h1>
+          <p class="brand-subtitle">Previsió micològica oberta de Catalunya</p>
+        </div>
       </div>
     </div>
     <div class="header-actions">
-      <button id="btnRefreshWeather" class="btn btn-primary" title="Descarrega les dades meteorològiques més recents d'Open-Meteo">
+      <button id="btnRefreshWeather" class="btn btn-primary btn-refresh" title="Descarrega les dades meteorològiques més recents d'Open-Meteo">
         <span>🔄</span>
-        <span>Actualitza Dades (Open-Meteo)</span>
+        <span class="btn-text">Actualitza Dades</span>
       </button>
     </div>
   </header>
+
+  <!-- Mobile Sidebar Backdrop Overlay -->
+  <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
 
   <!-- Main Work Area -->
   <div class="app-container">
 
     <!-- Left Sidebar: Species selection & Hotspot list -->
-    <aside class="sidebar">
+    <aside id="appSidebar" class="sidebar">
+      <div class="sidebar-mobile-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.2rem;">🍄</span>
+          <h3 style="font-size: 1rem; font-weight: 700; color: #f8fafc;">Filtres i Espècies</h3>
+        </div>
+        <button id="btnCloseSidebar" class="btn-close-sidebar" title="Tanca el menú">✕</button>
+      </div>
+
       <div class="sidebar-content">
 
         <!-- Species Selection Grid -->
@@ -78,6 +94,11 @@
     <!-- Center/Right Map Viewport -->
     <main class="map-container">
       <div id="map"></div>
+
+      <!-- Mobile Fast Species Selector (Swipeable Pills) -->
+      <div id="mobileSpeciesBar" class="mobile-species-bar">
+        <!-- Populated dynamically with thumb-friendly pills -->
+      </div>
 
       <!-- Map Controls Panel (Top Left) -->
       <div class="map-controls-panel">
@@ -126,6 +147,9 @@
 
       <!-- Inspector / Explanation Drawer -->
       <div id="inspectorDrawer" class="inspector-drawer">
+        <!-- Mobile drag handle bar -->
+        <div class="drawer-handle-bar"></div>
+
         <!-- Drawer Header -->
         <div class="inspector-header">
           <div class="inspector-title">
