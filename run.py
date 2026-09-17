@@ -17,6 +17,8 @@ if ROOT_DIR not in sys.path:
 def main():
     default_host = os.environ.get("HOST", "127.0.0.1")
     default_port = int(os.environ.get("PORT", 8000))
+
+    parser = argparse.ArgumentParser(description="Bolet Forecaster Catalunya Web App")
     parser.add_argument("--host", default=default_host, help=f"Host to bind (default: {default_host})")
     parser.add_argument("--port", type=int, default=default_port, help=f"Port to bind (default: {default_port})")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
