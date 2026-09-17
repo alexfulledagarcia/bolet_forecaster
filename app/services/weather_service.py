@@ -66,6 +66,8 @@ class WeatherService:
     def _fetch_from_open_meteo(self, zones: List[Dict[str, Any]], chunk_size: int = 30) -> Dict[str, Dict[str, Any]]:
         results: Dict[str, Dict[str, Any]] = {}
         total = len(zones)
+        api_key = os.environ.get("OPEN_METEO_API_KEY", "").strip()
+        base_domain = "customer-api.open-meteo.com" if api_key else "api.open-meteo.com"
 
         for i in range(0, total, chunk_size):
             chunk = zones[i:i + chunk_size]
@@ -73,11 +75,13 @@ class WeatherService:
             lons = ",".join(str(round(z["lon"], 4)) for z in chunk)
 
             url = (
-                f"https://api.open-meteo.com/v1/forecast?"
+                f"https://{base_domain}/v1/forecast?"
                 f"latitude={lats}&longitude={lons}&"
                 f"daily=temperature_2m_max,temperature_2m_min,precipitation_sum,soil_moisture_0_to_7cm_mean,relative_humidity_2m_mean&"
                 f"past_days=14&forecast_days=3&timezone=Europe/Madrid"
             )
+            if api_key:
+                url += f"&apikey={api_key}"
 
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": "BoletForecaster/1.0"})

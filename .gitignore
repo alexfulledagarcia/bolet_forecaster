@@ -21,9 +21,10 @@ dist/
 .coverage
 htmlcov/
 
-# Local cache (keep folder with gitkeep)
+# Local cache (track pre-warmed weather_cache.json for instant cold-starts on Render)
 data/cache/*
 !data/cache/.gitkeep
+!data/cache/weather_cache.json
 
 # IDEs & Editors
 .vscode/
