@@ -890,47 +890,6 @@ header {
   border: 1px solid rgba(249, 115, 22, 0.4);
 }
 
-/* Aspect Tiers */
-.aspect-tiers-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.aspect-tier-item {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 8px 10px;
-}
-
-.aspect-tier-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.aspect-tier-title {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #f8fafc;
-}
-
-.aspect-tier-score {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.aspect-tier-desc {
-  font-size: 0.72rem;
-  color: #cbd5e1;
-  line-height: 1.35;
-  margin: 0;
-}
-
 /* Tactical Advice */
 .detail-tactical-card {
   background: linear-gradient(135deg, rgba(30, 58, 138, 0.25) 0%, rgba(15, 23, 42, 0.7) 100%);

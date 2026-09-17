@@ -269,7 +269,7 @@ function openZoneDetailMap(zone, speciesObj) {
     subMap.invalidateSize();
     subMap.setView([zone.lat, zone.lon], 13);
     renderZoneDetailedMap(zone, speciesObj);
-    renderAltitudeAndShadeAssessment(zone, speciesObj);
+    renderAltitudeAssessment(zone, speciesObj);
   }, 100);
 }
 
@@ -317,9 +317,8 @@ function renderZoneDetailedMap(zone, speciesObj) {
   `).openPopup();
 }
 
-function renderAltitudeAndShadeAssessment(zone, speciesObj) {
+function renderAltitudeAssessment(zone, speciesObj) {
   const elevContainer = document.getElementById("detailAltitudeTiers");
-  const aspectContainer = document.getElementById("detailAspectTiers");
   const altSub = document.getElementById("detailAltSubtitle");
   const tactSub = document.getElementById("detailTacticalSubtitle");
   const tactText = document.getElementById("detailTacticalAdviceText");
@@ -340,13 +339,13 @@ function renderAltitudeAndShadeAssessment(zone, speciesObj) {
   const rain14d = zone.factors ? zone.factors.rain_14d_mm : 40.0;
   const soilMoist = zone.factors ? zone.factors.soil_moisture_pct : 30;
 
+  const lowElev = Math.max(120, Math.round(zoneElev - 320));
+  const midElev = zoneElev;
+  const highElev = Math.round(zoneElev + 320);
+
   // --- 1. ALTITUDE TIERS EVALUATION ---
   if (elevContainer) {
     elevContainer.innerHTML = "";
-
-    const lowElev = Math.max(120, Math.round(zoneElev - 320));
-    const midElev = zoneElev;
-    const highElev = Math.round(zoneElev + 320);
 
     const lowTemp = (tempMean + 2.1).toFixed(1);
     const midTemp = tempMean.toFixed(1);
@@ -400,58 +399,19 @@ function renderAltitudeAndShadeAssessment(zone, speciesObj) {
     });
   }
 
-  // --- 2. SHADES & ASPECT TIERS EVALUATION ---
-  if (aspectContainer) {
-    aspectContainer.innerHTML = "";
-
-    const aspects = [
-      {
-        title: "🌲 Obaga (Vessant Nord / Ombres)",
-        scoreClass: "alt-optimal",
-        scoreText: "Retenció hídrica màxima (+25%)",
-        desc: `Rep mínima radiació solar directa. Gràcies als ${rain14d} mm recents, manté la capa de molsa humida i evita l'evaporació diürna. Excel·lent per a Ceps, Camagrocs i Trompetes.`
-      },
-      {
-        title: "☀️ Solana (Vessant Sud / Assolellat)",
-        scoreClass: rain14d < 40 ? "alt-marginal" : "alt-favorable",
-        scoreText: rain14d < 40 ? "Assecament ràpid" : "Sòl temperat",
-        desc: `Radiació tèrmica elevada. El sòl s'escalfa ràpidament però perd humitat en pocs dies. Idònia per al Rovelló de sang sobre calcari o quan les nits són molt fredes.`
-      },
-      {
-        title: "💧 Fons de Vall / Torrents i Fondalades",
-        scoreClass: "alt-optimal",
-        scoreText: "Refugi hídric permanent",
-        desc: `Conflueix l'escorriment de les aigües de tot el massís. És la zona més protegida del vent i on el miceli aguanta millor períodes curts de sequera.`
-      }
-    ];
-
-    aspects.forEach(a => {
-      const item = document.createElement("div");
-      item.className = "aspect-tier-item";
-      item.innerHTML = `
-        <div class="aspect-tier-head">
-          <span class="aspect-tier-title">${a.title}</span>
-          <span class="alt-tier-status ${a.scoreClass}">${a.scoreText}</span>
-        </div>
-        <p class="aspect-tier-desc">${a.desc}</p>
-      `;
-      aspectContainer.appendChild(item);
-    });
-  }
-
-  // --- 3. TACTICAL FORAGING ADVICE ---
+  // --- 2. TACTICAL FORAGING ADVICE ---
   if (tactSub) {
-    tactSub.textContent = `Estratègia recomanada per a ${zone.name}`;
+    tactSub.textContent = `Estratègia altitudinal per a ${zone.name}`;
   }
 
   if (tactText) {
     let advice = "";
     if (rain14d < 35) {
-      advice = `La pluja acumulada ha estat modesta (${rain14d} mm). Evita completament les solanes assecades pel vent. <strong>Centra la teva cerca exclusivament a les obagues denses i fons de torrentera</strong> entre els <strong>${Math.max(lowElev, species.optimal_elevation_m[0])}m i ${Math.min(zoneElev + 150, species.optimal_elevation_m[1])}m</strong>, on la molsa protegeix el sòl.`;
+      advice = `La pluja acumulada en 14 dies ha estat modesta (${rain14d} mm). Per maximitzar les opcions de trobada, <strong>centra la cerca a la cota mitjana-baixa (~${Math.max(lowElev, species.optimal_elevation_m[0])}m)</strong> en zones forestals denses de ${zone.forest_type.split("(")[0].trim()} on la molsa retingui la humitat del sòl.`;
     } else if (tempMean < 8.0) {
-      advice = `Les temperatures a cotes altes són ja molt fresques (${tempMean}°C de mitjana) amb risc de terra fred. Recomanem <strong>baixar cap a la cota mitjana-baixa (~${Math.max(lowElev, species.elevation_min_m)}m)</strong> i explorar <strong>replans arrecerats i solanes suaus</strong> que rebin radiació solar diürna.`;
+      advice = `Les temperatures a cotes altes són molt fredes (${tempMean}°C de mitjana) amb risc de terra refredat. Recomanem <strong>descendir cap a la cota baixa (~${Math.max(lowElev, species.elevation_min_m)}m)</strong> cercant replans arrecerats amb temperatures més suaus.`;
     } else {
-      advice = `Aquest massís compta amb molt bon equilibri d'humitat (${rain14d} mm en 14 dies) i temperatura (${tempMean}°C). La franja amb més potencial és la <strong>cota mitjana (${zoneElev}m) a l'obaga</strong>, estenent la cerca per boscos madurs de ${zone.forest_type.split("(")[0].trim()}.`;
+      advice = `Aquest massís compta amb un excel·lent equilibri de pluja (${rain14d} mm) i temperatura (${tempMean}°C). L'espècie es troba en plena franja de producció a la <strong>cota mitjana (${zoneElev}m)</strong> dins del bosc de ${zone.forest_type.split("(")[0].trim()}.`;
     }
     tactText.innerHTML = advice;
   }
