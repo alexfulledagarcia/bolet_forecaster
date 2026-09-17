@@ -8,10 +8,16 @@ let currentBaseLayer = "dark";
 
 // Tile Providers
 const TILE_LAYERS = {
-  dark: L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    attribution: '&copy; <a href="https://carto.com/">CARTO</a>, &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
-    maxZoom: 18
-  }),
+  dark: L.layerGroup([
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+      attribution: '&copy; Esri, DeLorme, &copy; OpenStreetMap',
+      maxZoom: 16
+    }),
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+      attribution: '',
+      maxZoom: 16
+    })
+  ]),
   osm: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
     maxZoom: 18
@@ -54,7 +60,13 @@ function setBaseLayer(layerKey) {
   map.removeLayer(TILE_LAYERS[currentBaseLayer]);
   map.addLayer(TILE_LAYERS[layerKey]);
   // Ensure layers are underneath markers & heatmap
-  TILE_LAYERS[layerKey].bringToBack();
+  if (typeof TILE_LAYERS[layerKey].bringToBack === "function") {
+    TILE_LAYERS[layerKey].bringToBack();
+  } else if (TILE_LAYERS[layerKey].eachLayer) {
+    TILE_LAYERS[layerKey].eachLayer(l => {
+      if (typeof l.bringToBack === "function") l.bringToBack();
+    });
+  }
   currentBaseLayer = layerKey;
 }
 
