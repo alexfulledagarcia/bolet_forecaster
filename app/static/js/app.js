@@ -275,10 +275,13 @@ async function loadComarques() {
   }
 }
 
-async function loadForecast(speciesId, autoSelectTop = false) {
+async function loadForecast(speciesId, autoSelectTop = false, forceUpdate = false) {
   showLoader(true);
   try {
-    const res = await fetch(`/api/forecast?species_id=${speciesId}`);
+    const url = forceUpdate
+      ? `/api/forecast?species_id=${speciesId}&force_update=true`
+      : `/api/forecast?species_id=${speciesId}`;
+    const res = await fetch(url);
     const data = await res.json();
     state.forecastData = data;
 
@@ -502,17 +505,22 @@ async function handleRefreshWeather() {
     btn.innerHTML = `<span>⏳</span> <span>Actualitzant...</span>`;
   }
   try {
-    const res = await fetch("/api/weather/refresh", { method: "POST" });
+    const res = await fetch("/api/weather/refresh?force_update=true", { method: "POST" });
     if (res.ok) {
-      await loadForecast(state.currentSpecies);
-      alert("✅ Dades meteorològiques d'Open-Meteo actualitzades correctament!");
+      const data = await res.json();
+      await loadForecast(state.currentSpecies, false, true);
+      const providerName = data.provider === "meteocat" ? "Meteocat (Servei Meteorològic de Catalunya)" : "Open-Meteo";
+      alert(`✅ Dades meteorològiques actualitzades correctament via ${providerName} (ometent memòria cau)!`);
+    } else {
+      throw new Error(`HTTP ${res.status}`);
     }
   } catch (err) {
+    console.error("Error refreshing weather:", err);
     alert("⚠️ No s'han pogut actualitzar les dades meteorològiques en viu.");
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = `<span>🔄</span> <span>Actualitza Dades (Open-Meteo)</span>`;
+      btn.innerHTML = `<span>🔄</span> <span>Força Actualització</span>`;
     }
   }
 }

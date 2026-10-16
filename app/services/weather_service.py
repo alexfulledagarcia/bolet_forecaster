@@ -7,6 +7,14 @@ from typing import Dict, List, Any, Optional
 import urllib.request
 import urllib.error
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+from app.services.meteocat_service import MeteocatService, MeteocatAPIError
+
 logger = logging.getLogger(__name__)
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "cache")
@@ -19,6 +27,7 @@ class WeatherService:
         self.cache_file = cache_file
         os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
         self._cache: Dict[str, Any] = self._load_cache()
+        self.meteocat = MeteocatService()
 
     def _load_cache(self) -> Dict[str, Any]:
         if os.path.exists(self.cache_file):
@@ -37,25 +46,55 @@ class WeatherService:
         except Exception as e:
             logger.error(f"Failed to write cache to {self.cache_file}: {e}")
 
-    def get_weather_for_zones(self, zones: List[Dict[str, Any]], force_refresh: bool = False) -> Dict[str, Dict[str, Any]]:
+    def get_weather_for_zones(
+        self,
+        zones: List[Dict[str, Any]],
+        force_refresh: bool = False,
+        force_update: bool = False
+    ) -> Dict[str, Dict[str, Any]]:
         """
         Retrieves meteorological data for a list of zones.
-        Uses cached data if fresh and available, otherwise fetches from Open-Meteo API.
+        1. Uses fresh cache if available (< 6h), unless force_update or force_refresh is True.
+        2. If force update is requested or cache is stale:
+           - Bypasses cache check and updates data directly.
+           - Tries Meteocat (Servei Meteorològic de Catalunya) if METEOCAT_API_KEY is configured.
+           - Seamlessly falls back to Open-Meteo if Meteocat is unavailable or fails.
+           - Falls back to local synthetic generator if network is completely unreachable.
         """
+        force = force_refresh or force_update
         now = time.time()
         is_cache_fresh = (now - self._cache.get("timestamp", 0)) < CACHE_TTL_SECONDS
         cached_zones = self._cache.get("zones", {})
 
         all_zones_cached = all(z["id"] in cached_zones for z in zones)
 
-        if not force_refresh and is_cache_fresh and all_zones_cached:
+        if not force and is_cache_fresh and all_zones_cached:
             logger.info("Using fresh weather cache for all zones.")
             return cached_zones
 
-        # Otherwise fetch from Open-Meteo in chunks
-        fetched_zones = self._fetch_from_open_meteo(zones)
+        if force:
+            logger.info("Force update requested: skipping cache and pulling fresh weather data.")
 
-        # Merge with existing cache
+        fetched_zones: Dict[str, Dict[str, Any]] = {}
+
+        # 1. Primary provider: Meteocat (if METEOCAT_API_KEY is configured)
+        if self.meteocat.is_configured:
+            try:
+                logger.info("Attempting to fetch fresh weather data from Meteocat...")
+                fetched_zones = self.meteocat.fetch_weather_for_zones(zones, force_refresh=force)
+                logger.info(f"Successfully retrieved weather from Meteocat for {len(fetched_zones)} zones.")
+            except Exception as e:
+                logger.warning(f"Meteocat provider error: {e}. Falling back gracefully to Open-Meteo.")
+                fetched_zones = {}
+
+        # 2. Fallback provider: Open-Meteo for any remaining/missing zones
+        missing_zones = [z for z in zones if z["id"] not in fetched_zones]
+        if missing_zones:
+            logger.info(f"Fetching {len(missing_zones)} zones from Open-Meteo fallback...")
+            open_meteo_results = self._fetch_from_open_meteo(missing_zones)
+            fetched_zones.update(open_meteo_results)
+
+        # 3. Merge with existing cache and persist
         cached_zones.update(fetched_zones)
         self._cache["timestamp"] = now
         self._cache["zones"] = cached_zones

@@ -1,6 +1,12 @@
 import os
 import logging
 from typing import Optional, List, Dict, Any
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,7 +59,8 @@ def get_comarques():
 def get_forecast(
     species_id: str = Query("cep", description="Identifier of the mushroom species"),
     comarca: Optional[str] = Query(None, description="Optional comarca filter"),
-    force_refresh: bool = Query(False, description="Force refresh of weather cache")
+    force_update: bool = Query(False, description="Skip cache and force update via Meteocat/Open-Meteo"),
+    force_refresh: bool = Query(False, description="Alias for force_update")
 ):
     """
     Returns probability forecasts for all zones across Catalonia for the chosen species.
@@ -67,7 +74,8 @@ def get_forecast(
     if comarca:
         zones = [z for z in zones if z["comarca"].lower() == comarca.lower()]
 
-    weather_data = weather_service.get_weather_for_zones(zones, force_refresh=force_refresh)
+    force = force_update or force_refresh
+    weather_data = weather_service.get_weather_for_zones(zones, force_update=force)
 
     forecasts: List[Dict[str, Any]] = []
     # Heatmap points array format: [lat, lon, intensity (0.0 to 1.0)]
@@ -94,7 +102,9 @@ def get_forecast(
 @app.get("/api/zone/{zone_id}", response_model=ZoneForecast)
 def get_zone_forecast(
     zone_id: str,
-    species_id: str = Query("cep", description="Identifier of the mushroom species")
+    species_id: str = Query("cep", description="Identifier of the mushroom species"),
+    force_update: bool = Query(False, description="Skip cache and force update via Meteocat/Open-Meteo"),
+    force_refresh: bool = Query(False, description="Alias for force_update")
 ):
     """
     Returns in-depth prediction, complete natural language explanation,
@@ -108,7 +118,8 @@ def get_zone_forecast(
     if not species:
         raise HTTPException(status_code=404, detail=f"Species '{species_id}' not found.")
 
-    weather_dict = weather_service.get_weather_for_zones([zone])
+    force = force_update or force_refresh
+    weather_dict = weather_service.get_weather_for_zones([zone], force_update=force)
     w = weather_dict.get(zone["id"], {})
 
     return PredictionModel.calculate_forecast(zone, w, species)
@@ -118,7 +129,9 @@ def get_zone_forecast(
 def get_nearest_zone(
     lat: float = Query(..., description="Latitude of clicked point"),
     lon: float = Query(..., description="Longitude of clicked point"),
-    species_id: str = Query("cep", description="Species id")
+    species_id: str = Query("cep", description="Species id"),
+    force_update: bool = Query(False, description="Skip cache and force update via Meteocat/Open-Meteo"),
+    force_refresh: bool = Query(False, description="Alias for force_update")
 ):
     """
     Finds the nearest zone to any arbitrary coordinate clicked on the map
@@ -132,7 +145,8 @@ def get_nearest_zone(
     if not species:
         raise HTTPException(status_code=404, detail=f"Species '{species_id}' not found.")
 
-    weather_dict = weather_service.get_weather_for_zones([nearest])
+    force = force_update or force_refresh
+    weather_dict = weather_service.get_weather_for_zones([nearest], force_update=force)
     w = weather_dict.get(nearest["id"], {})
 
     forecast = PredictionModel.calculate_forecast(nearest, w, species)
@@ -140,11 +154,20 @@ def get_nearest_zone(
 
 
 @app.post("/api/weather/refresh")
-def refresh_weather():
-    """Forces refreshing of Open-Meteo weather data for all zones."""
+def refresh_weather(
+    force_update: bool = Query(True, description="Force update skipping cache and pulling from Meteocat / Open-Meteo"),
+    force_refresh: bool = Query(True, description="Alias for force_update")
+):
+    """Forces refreshing of weather data for all zones skipping the cache."""
     zones = geo_service.get_all_zones()
-    weather_dict = weather_service.get_weather_for_zones(zones, force_refresh=True)
-    return {"status": "success", "refreshed_zones": len(weather_dict)}
+    force = force_update or force_refresh
+    weather_dict = weather_service.get_weather_for_zones(zones, force_update=force)
+    provider = "meteocat" if weather_service.meteocat.is_configured else "open-meteo"
+    return {
+        "status": "success",
+        "refreshed_zones": len(weather_dict),
+        "provider": provider
+    }
 
 
 @app.get("/api/summary")
